@@ -25,3 +25,9 @@ request method return a ES6 Promise. The stdout of pu.exe is parsed into a ES6 M
 ## Benchmark
 
 - request to pu.exe ( between 350 - 500 ms ) 
+
+## Roadmap Release 1
+
+- Better request arguments handle.
+- Add support for timeout.
+- Setup Nimsoft.NoARG automatically when needed ( HARD )
