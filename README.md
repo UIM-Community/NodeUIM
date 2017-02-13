@@ -22,6 +22,23 @@ nimSDK.request('hub','getrobots',[Nimsoft.NoARG,Nimsoft.NoARG])
 
 request method return a ES6 Promise. The stdout of pu.exe is parsed into a ES6 Map by a PDS Class.
 
+```js
+nimSDK.request('hub','getrobots',['hostname',Nimsoft.NoARG])
+.then( Map => {
+    console.log(Map.get('robot').get('origin'));
+    console.timeEnd('timeTest');
+})
+.catch( err => {
+    throw new Error(err);
+});
+```
+
+## Debugging 
+
+```js
+console.log(JSON.stringify(Map,null,2));
+```
+
 ## Benchmark
 
 - request to pu.exe ( between 350 - 500 ms ) 
@@ -31,3 +48,5 @@ request method return a ES6 Promise. The stdout of pu.exe is parsed into a ES6 M
 - Better request arguments handle.
 - Add support for timeout.
 - Setup Nimsoft.NoARG automatically when needed ( HARD )
+- Logger class 
+- Add async each method to Nimsoft class.
