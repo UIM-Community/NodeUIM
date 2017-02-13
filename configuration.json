@@ -1,5 +1,6 @@
 {
     "path": "",
     "login": "administrator",
-    "password": "password"
+    "password": "password",
+    "debug": false
 }
