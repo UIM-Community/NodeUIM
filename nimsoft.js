@@ -54,11 +54,11 @@ PDS.regex = /([a-zA-Z0-9_-]+)\s+(PDS_PCH|PDS_I|PDS_PDS|PDS_PPDS)\s+[0-9]+\s?([a-
 
 class Nimsoft extends eventEmitter {
 
-    constructor(path,login,password) {
+    constructor(opts) {
         super();
-        this.login = login;
-        this.password = password;
-        this.path = path+"\\pu.exe";
+        this.login = opts.login;
+        this.password = opts.password;
+        this.path = opts.path+"\\pu.exe";
     }
 
     request(nimPath,callbackName,args) {
