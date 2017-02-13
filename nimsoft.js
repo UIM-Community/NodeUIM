@@ -1,6 +1,11 @@
 const exec = require('child_process').exec;
 const eventEmitter = require('events'); 
+const fs = require('fs');
+const path = require('path');
 
+/*
+    PDS Wrapper 
+*/
 class PDS {
 
     constructor(str) {
@@ -8,9 +13,8 @@ class PDS {
         let PPDS_Name;
         let CurrentPDS;
         this._inner = new Map();
-        console.log('start parsing');
-        console.time('parseTime');
-        while(results = PDS.regex.exec(str)) {
+
+        while( ( results = PDS.regex.exec(str) ) !== null) {
             let varName     = results[1];
             let varType     = results[2];
             let varValue    = results[3];
@@ -39,18 +43,36 @@ class PDS {
                     this._inner.set(varName,new Map());
                 }
                 else {
-                    this._inner.get(PPDS_Name)[varName] = {};
+                    if(/^\d+$/.test(CurrentPDS)) {
+                        this._inner.get(PPDS_Name)[varName] = {};
+                    }
+                    else {
+                        PPDS_Name = null;
+                        this._inner.set(varName,new Map());
+                    }
                 }
             }
         }
-        console.timeEnd('parseTime');
+
     }
 
     toMap() {
         return this._inner;
     }
 }
-PDS.regex = /([a-zA-Z0-9_-]+)\s+(PDS_PCH|PDS_I|PDS_PDS|PDS_PPDS)\s+[0-9]+\s?([a-zA-Z0-9:\-\/.[,\]]+)?/g;
+PDS.regex = /([a-zA-Z0-9_-]+)\s+(PDS_PCH|PDS_I|PDS_PDS|PDS_PPDS)\s+[0-9]+\s?(.*)/gm;
+
+/*
+    Main Nimsoft Class 
+*/
+const INimRequest = {
+    path: 'hub',
+    callback: '_status',
+    timeout: 10000,
+    debug: false,
+    maxBuffer: 1024 * 5000,
+    encoding: 'utf8'
+}
 
 class Nimsoft extends eventEmitter {
 
@@ -61,28 +83,89 @@ class Nimsoft extends eventEmitter {
         this.path = opts.path+"\\pu.exe";
     }
 
-    request(nimPath,callbackName,args) {
-        if(nimPath === undefined || callbackName === undefined) {
-            console.error('Please provide good argument for Request method');
-            return;
-        }
+    request(opts) {
+        let Options = {};
+        Object.assign(Options,INimRequest,opts);
         return new Promise( (resolve,reject) => {
-            let cmd = `${this.path} -u ${this.login} -p ${this.password} ${nimPath} ${callbackName}`;
-            if(args !== undefined && args instanceof Array) {
-                cmd = `${cmd} ${args.join(" ")}`;
+            let cmd = `${this.path} -u ${this.login} -p ${this.password} ${Options.path} ${Options.callback}`;
+            if(Options.args !== undefined && Options.args instanceof Array) {
+                cmd = `${cmd} ${Options.args.join(" ")}`;
             }
-            console.log(cmd);
-            exec(cmd, (error, stdout, stderr) => {
-                if (error) {
+            exec(cmd, {timeout: Options.timeout, maxBuffer: Options.maxBuffer, encoding: Options.encoding}, (error, stdout, stderr) => {
+                if(error && this.debug) {
                     reject(error);
                 }
-                const PDSObject = new PDS(stdout);
-                this.emit('requestDone',PDSObject);
-                resolve(PDSObject.toMap());
+                const FailArray = Nimsoft.failed.exec(stdout);
+                if(FailArray) {
+                    reject(FailArray[0]);
+                }
+                else {
+                    resolve(new PDS(stdout).toMap());
+                }
             });
         });
     }
 }
+Nimsoft.encoding = 'utf8';
+Nimsoft.timeOut = 10000;
+Nimsoft.failed = /(failed:)\s+(.*)/;
 Nimsoft.NoARG = '""';
 
-module.exports = Nimsoft;
+/*
+    LOGGER Class 
+*/
+const ILoggerConstructor = {
+    level: 5,
+    streamOpen: false
+}
+
+class Logger extends eventEmitter {
+
+    constructor(opts) {
+        super();
+        Object.assign(this,ILoggerConstructor,opts);
+        if(this.file === undefined) {
+            throw new Error('Please provide a file for logger');
+        }
+        this.open();
+        this.on('log',this.log);
+    }
+
+    open() {
+        if(this.streamOpen === true) return;
+        this.stream = fs.createWriteStream(this.file,{
+            defaultEncoding: 'utf8'
+        });
+        this.streamOpen = true;
+    }
+
+    log(msg,level) {
+        if(msg !== undefined) {
+            level = level || 3; 
+            const header = "";
+            this.stream.write(msg+"\r\n");
+        }
+    }
+
+    close() {
+        if(this.streamOpen === false) return;
+        this.stream.end();
+        this.streamOpen = false;
+    }
+
+}
+Logger.Critical = 0;
+Logger.Error = 1;
+Logger.Warning = 2;
+Logger.Info = 3;
+Logger.Debug = 4;
+Logger.Empty = 5;
+
+/*
+    Exports all modules ! 
+*/
+module.exports = {
+    Nimsoft,
+    PDS,
+    Logger
+}
