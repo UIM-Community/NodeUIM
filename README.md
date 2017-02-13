@@ -42,6 +42,7 @@ console.log(JSON.stringify(Map,null,2));
 ## Benchmark
 
 - request to pu.exe ( between 350 - 500 ms ) 
+- Parsing time ( 10 ms for 1000 robots ).
 
 ## Roadmap Release 1
 
