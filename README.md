@@ -1,6 +1,8 @@
 # NodeUIM
 CA UIM NodeJS interface to work with pu.exe in a full async way.
 
+Find API Documentation [Here](https://github.com/fraxken/NodeUIM/wiki)
+
 ## Requirement 
 
 - NodeJS 7.x.x or higher
