@@ -63,53 +63,102 @@ class PDS {
 PDS.regex = /([a-zA-Z0-9_-]+)\s+(PDS_PCH|PDS_I|PDS_PDS|PDS_PPDS)\s+[0-9]+\s?(.*)/gm;
 
 /*
-    Main Nimsoft Class 
+    PU Class
 */
-const INimRequest = {
-    path: 'hub',
-    callback: '_status',
-    timeout: 10000,
-    debug: false,
-    maxBuffer: 1024 * 5000,
-    encoding: 'utf8'
-}
-
-class Nimsoft extends eventEmitter {
+class ProbeUtility extends eventEmitter {
 
     constructor(opts) {
         super();
-        this.login = opts.login;
-        this.password = opts.password;
-        this.path = opts.path+"\\pu.exe";
+        Object.assign(this,opts);
     }
 
-    request(opts) {
-        let Options = {};
-        Object.assign(Options,INimRequest,opts);
+    call() {
         return new Promise( (resolve,reject) => {
-            let cmd = `${this.path} -u ${this.login} -p ${this.password} ${Options.path} ${Options.callback}`;
-            if(Options.args !== undefined && Options.args instanceof Array) {
-                cmd = `${cmd} ${Options.args.join(" ")}`;
+            let cmd = `${this.nimPath} -u ${this.login} -p ${this.password} ${this.path} ${this.callback}`;
+            if(this.args !== undefined && this.args instanceof Array) {
+                cmd = `${cmd} ${this.args.join(" ")}`;
             }
-            exec(cmd, {timeout: Options.timeout, maxBuffer: Options.maxBuffer, encoding: Options.encoding}, (error, stdout, stderr) => {
-                if(error && this.debug) {
-                    reject(error);
+
+            this.cp = exec(cmd, {timeout: this.timeout, maxBuffer: this.maxBuffer, encoding: this.encoding}, (error, stdout, stderr) => {
+                if(error) {
+                    this.error = error;
                 }
                 const FailArray = Nimsoft.failed.exec(stdout);
                 if(FailArray) {
-                    reject(FailArray[0]);
+                    this.error = FailArray[0];
                 }
                 else {
-                    resolve(new PDS(stdout).toMap());
+                    this.Map = new PDS(stdout).toMap();
+                }
+            });
+
+            this.cp.on('close', (rc,signal) => {
+                this.rc = rc;
+                this.signal = signal;
+                if(this.rc !== Nimsoft.nimOk) {
+                    reject(this);
+                }
+                else {
+                    resolve(true);
                 }
             });
         });
     }
 }
+
+/*
+    Main Nimsoft Class 
+*/
+class Nimsoft extends eventEmitter {
+
+    constructor(opts) {
+        super();
+        this.login      = opts.login;
+        this.password   = opts.password;
+        if(path.isAbsolute(opts.path) === false) {
+            throw new Error("Please provide an absolute path");
+        }
+        this.nimPath = path.basename(opts.path) === 'pu.exe' ? opts.path : path.join( opts.path , 'pu.exe' );
+    }
+
+    pu(opts) {
+        const Options   = Object.assign(this,Nimsoft.INimRequest,opts);
+        const PU        = new ProbeUtility(Options);
+        return new Promise( (resolve,reject) => {
+            PU.call().then( _ => resolve(PU) ).catch( err => reject(err) );
+        });
+    }
+}
+// Static variables
 Nimsoft.encoding = 'utf8';
-Nimsoft.timeOut = 10000;
+Nimsoft.timeOut = 5000;
+Nimsoft.maxBuffer = 1024 * 3000;
 Nimsoft.failed = /(failed:)\s+(.*)/;
-Nimsoft.NoARG = '""';
+Nimsoft.noArg = '""';
+Nimsoft.nimOk = 0;
+Nimsoft.INimRequest = {
+    path: 'hub',
+    callback: '_status',
+    timeout: Nimsoft.timeOut,
+    debug: false,
+    maxBuffer: Nimsoft.maxBuffer,
+    encoding: Nimsoft.encoding
+}
+
+/*
+    NimAlarm 
+*/
+const INimAlarmConstructor = {
+
+}
+
+class NimAlarm extends eventEmitter {
+
+    constructor(opts) {
+        super();
+    }
+
+}
 
 /*
     LOGGER Class 
@@ -142,8 +191,11 @@ class Logger extends eventEmitter {
     log(msg,level) {
         if(msg !== undefined) {
             level = level || 3; 
-            const header = "";
-            this.stream.write(msg+"\r\n");
+            if(level <= this.level) {
+                const message = `${Date.now()} - [${Logger.CriticityTable[level]}] ${msg} \r\n`;
+                this.stream.write(message);
+                console.log(message);
+            }
         }
     }
 
@@ -154,6 +206,7 @@ class Logger extends eventEmitter {
     }
 
 }
+Logger.CriticityTable = ['Critical','Error','Warning','Info','Debug','Empty'];
 Logger.Critical = 0;
 Logger.Error = 1;
 Logger.Warning = 2;
@@ -167,5 +220,6 @@ Logger.Empty = 5;
 module.exports = {
     Nimsoft,
     PDS,
-    Logger
+    Logger,
+    NimAlarm
 }
