@@ -20,27 +20,27 @@ function closeHandler() {
 const RobotsList = [];
 
 logger.log(console.time('write_name'));
-logger.log('Get robots!');
-logger.log('---------------------------------');
+logger.log('Get robots!',Logger.Empty);
+logger.log('---------------------------------',Logger.Empty);
 nimSDK.pu({ callback: 'gethubs' }).then( Response => {
     return new Promise( (resolve, reject) => {
-        logger.log('Return code => '+Response.rc);
+        logger.log('Return code => '+Response.rc,Logger.Debug);
         async.each(Response.Map.get('hublist'),(hub, donehub) => {
             if(hub.domain !== 'NMS-PROD') {
                 donehub();
                 return;
             }
-            logger.log(`hubName : ${hub.name}`);
-            logger.log('---------------------------------');
+            logger.log(`hubName : ${hub.name}`,Logger.Info);
+            logger.log('---------------------------------',Logger.Empty);
             
-            nimSDK.pu({ path: hub.addr, callback: 'getrobots', args: [Nimsoft.noArg,Nimsoft.noArg]}).then( ResponseSub => {
-                logger.log('Return code => '+ResponseSub.rc);
-                async.each(ResponseSub.Map.get('robotlist'),(robot, donerobot) => {
+            nimSDK.pu({ path: hub.addr, callback: 'getrobots', args: [Nimsoft.noArg,Nimsoft.noArg]}).then( Response => {
+                logger.log('Return code => '+Response.rc,Logger.Info);
+                async.each(Response.Map.get('robotlist'),(robot, donerobot) => {
                     RobotsList.push(robot.name);
                     donerobot();
                 } , err => {
-                    err && logger.log(err);
-                    logger.log(`${hub.addr} OK !!`);
+                    err && logger.log(err,Logger.Warning);
+                    logger.log(`${hub.addr} OK !!`,Logger.Info);
                     donehub();
                 });
             }).catch( ProbeUtility => {
@@ -65,6 +65,6 @@ nimSDK.pu({ callback: 'gethubs' }).then( Response => {
     });
 })
 .catch( ProbeUtility => {
-    logger.log(ProbeUtility.error,Logger.Error);
+    logger.log(ProbeUtility.error,Logger.Critical);
     closeHandler();
 });
