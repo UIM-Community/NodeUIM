@@ -10,33 +10,24 @@ CA UIM NodeJS interface to work with pu.exe in a full async way.
 ## Examples 
 
 ```js
+const SDK       = require('./nimsoft.js');
+const Nimsoft   = SDK.Nimsoft;
+const Logger    = SDK.Logger;
+
+const logger = new Logger({
+    file: 'example.log',
+    level: 3
+});
+
 const nimSDK = new Nimsoft(config);
-nimSDK.request('hub','getrobots',[Nimsoft.NoARG,Nimsoft.NoARG])
-.then( Map => {
-    console.log(Map.get('origin'));
+nimSDK.pu({ callback: 'gethubs' }).then( Response => {
+    logger.log(`Response code => ${Response.rc}`,Logger.Info);
+    logger.log(JSON.Stringify(Response.Map,null,2));
 })
-.catch( err => {
-    throw new Error(err);
+.catch( ProbeUtility => {
+    logger.log(ProbeUtility.error,Logger.Error);
+    closeHandler();
 });
-```
-
-request method return a ES6 Promise. The stdout of pu.exe is parsed into a ES6 Map by a PDS Class.
-
-```js
-nimSDK.request('hub','getrobots',['hostname',Nimsoft.NoARG])
-.then( Map => {
-    console.log(Map.get('robot').get('origin'));
-    console.timeEnd('timeTest');
-})
-.catch( err => {
-    throw new Error(err);
-});
-```
-
-## Debugging 
-
-```js
-console.log(JSON.stringify(Map,null,2));
 ```
 
 ## Benchmark
@@ -46,8 +37,10 @@ console.log(JSON.stringify(Map,null,2));
 
 ## Roadmap Release 1
 
-- Better request arguments handle.
-- Add support for timeout.
-- Setup Nimsoft.NoARG automatically when needed ( HARD )
-- Logger class 
-- Add async each method to Nimsoft class.
+- Setup Nimsoft.noArg automatically when needed ( HARD )
+- Add better event handling on probeUtility
+
+## Roadmap Release 2 
+
+- Continue to code a checkconfig.
+- Develop nimAlarm class.
