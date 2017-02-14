@@ -192,7 +192,7 @@ class Logger extends eventEmitter {
         if(msg !== undefined) {
             level = level || 3; 
             if(level <= this.level) {
-                const message = `${Date.now()} - [${Logger.CriticityTable[level]}] ${msg} \r\n`;
+                const message = `${Date.now()} - ${Logger.CriticityTable[level]} ${msg} \r\n`;
                 this.stream.write(message);
                 console.log(message);
             }
@@ -206,7 +206,7 @@ class Logger extends eventEmitter {
     }
 
 }
-Logger.CriticityTable = ['Critical','Error','Warning','Info','Debug','Empty'];
+Logger.CriticityTable = ['[Critical]','[Error]','[Warning]','[Info]','[Debug]',''];
 Logger.Critical = 0;
 Logger.Error = 1;
 Logger.Warning = 2;
