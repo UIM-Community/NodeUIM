@@ -8,11 +8,24 @@ const path = require('path');
 */
 class PDS {
 
-    constructor(str) {
+    constructor(...args) {
+        this.args = args;
+        for(let i = 0,length = this.args.length;i < length;i++) {
+            if(this.args[i] === null) {
+                this.args[i] = Nimsoft.noArg;
+            }
+        }
+    }
+
+    toString() {
+        return this.args.join(" ");
+    }
+
+    static parse(str) {
         let results;
         let PPDS_Name;
         let CurrentPDS;
-        this._inner = new Map();
+        let parseMap = new Map();
 
         while( ( results = PDS.regex.exec(str) ) !== null) {
             let varName     = results[1];
@@ -23,42 +36,40 @@ class PDS {
                 const convertedValue = (varType === 'PDS_I') ? parseInt(varValue) : varValue;
                 if(CurrentPDS !== undefined) {
                     if(PPDS_Name !== undefined) {
-                        this._inner.get(PPDS_Name)[CurrentPDS][varName] = convertedValue;
+                        parseMap.get(PPDS_Name)[CurrentPDS][varName] = convertedValue;
                     }
                     else {
-                        this._inner.get(CurrentPDS).set(varName,convertedValue);
+                        parseMap.get(CurrentPDS).set(varName,convertedValue);
                     }
                 }
                 else {
-                    this._inner.set(varName,convertedValue);
+                    parseMap.set(varName,convertedValue);
                 }
             }
             else if(varType === 'PDS_PPDS') {
                 PPDS_Name = varName;
-                this._inner.set(varName,[]);
+                parseMap.set(varName,[]);
             }
             else if(varType === 'PDS_PDS') {
                 CurrentPDS = varName;
                 if(PPDS_Name === undefined) {
-                    this._inner.set(varName,new Map());
+                    parseMap.set(varName,new Map());
                 }
                 else {
                     if(/^\d+$/.test(CurrentPDS)) {
-                        this._inner.get(PPDS_Name)[varName] = {};
+                        parseMap.get(PPDS_Name)[varName] = {};
                     }
                     else {
                         PPDS_Name = null;
-                        this._inner.set(varName,new Map());
+                        parseMap.set(varName,new Map());
                     }
                 }
             }
         }
 
+        return parseMap;
     }
 
-    toMap() {
-        return this._inner;
-    }
 }
 PDS.regex = /([a-zA-Z0-9_-]+)\s+(PDS_PCH|PDS_I|PDS_PDS|PDS_PPDS)\s+[0-9]+\s?(.*)/gm;
 
@@ -75,8 +86,13 @@ class ProbeUtility extends eventEmitter {
     call() {
         return new Promise( (resolve,reject) => {
             let cmd = `${this.nimPath} -u ${this.login} -p ${this.password} ${this.path} ${this.callback}`;
-            if(this.args !== undefined && this.args instanceof Array) {
-                cmd = `${cmd} ${this.args.join(" ")}`;
+            if(this.args !== undefined) {
+                if(this.args instanceof Array) {
+                    cmd = `${cmd} ${this.args.join(" ")}`;
+                }
+                else if(this.args instanceof PDS) {
+                    cmd = this.args.toString();
+                }
             }
 
             this.cp = exec(cmd, {timeout: this.timeout, maxBuffer: this.maxBuffer, encoding: this.encoding}, (error, stdout, stderr) => {
@@ -88,7 +104,7 @@ class ProbeUtility extends eventEmitter {
                     this.error = FailArray[0];
                 }
                 else {
-                    this.Map = new PDS(stdout).toMap();
+                    this.Map = PDS.parse(stdout);
                 }
             });
 
@@ -149,13 +165,21 @@ Nimsoft.INimRequest = {
     NimAlarm 
 */
 const INimAlarmConstructor = {
-
+    severity: 1,
+    subsystem: 1.1
 }
 
 class NimAlarm extends eventEmitter {
 
     constructor(opts) {
         super();
+        Object.assign(this,INimAlarmConstructor,opts);
+    }
+
+    call() {
+        return new Promise( (resolve,reject) => {
+
+        });
     }
 
 }
