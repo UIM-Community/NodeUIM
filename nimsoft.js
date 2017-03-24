@@ -1,7 +1,8 @@
-const exec = require('child_process').exec;
-const eventEmitter = require('events'); 
-const fs = require('fs');
-const path = require('path');
+const exec          = require('child_process').exec;
+const eventEmitter  = require('events'); 
+const fs            = require('fs');
+const path          = require('path');
+const http          = require('http');
 
 /*
     PDS Wrapper 
@@ -85,7 +86,7 @@ class ProbeUtility extends eventEmitter {
 
     call() {
         return new Promise( (resolve,reject) => {
-            let cmd = `${this.nimPath} -u ${this.login} -p ${this.password} ${this.path} ${this.callback}`;
+            let cmd = `${this.puPath} -u ${this.login} -p ${this.password} ${this.path} ${this.callback}`;
             if(this.args !== undefined) {
                 if(this.args instanceof Array) {
                     cmd = `${cmd} ${this.args.join(" ")}`;
@@ -134,16 +135,24 @@ class Nimsoft extends eventEmitter {
         if(path.isAbsolute(opts.path) === false) {
             throw new Error("Please provide an absolute path");
         }
-        this.nimPath = path.basename(opts.path) === 'pu.exe' ? opts.path : path.join( opts.path , 'pu.exe' );
+        this.puPath = path.basename(opts.path) === 'pu.exe' ? opts.path : path.join( opts.path , 'pu.exe' );
+        this.naPath = path.basename(opts.path) === 'nimAlarm.exe' ? opts.path : path.join( opts.path , 'nimAlarm.exe' );
     }
 
     pu(opts) {
-        const Options   = Object.assign(this,Nimsoft.INimRequest,opts);
-        const PU        = new ProbeUtility(Options);
+        const PU = new ProbeUtility(Object.assign(this,Nimsoft.INimRequest,opts));
         return new Promise( (resolve,reject) => {
             PU.call().then( _ => resolve(PU) ).catch( err => reject(err) );
         });
     }
+
+    alarm(opts) {
+        const alarm = new NimAlarm(Object.assign(this,opts));
+        return new Promise( (resolve,reject) => {
+            alarm.call().then( _ => resolve(alarm) ).catch( err => reject(err) );
+        });
+    }
+
 }
 // Static variables
 Nimsoft.encoding = 'utf8';
@@ -162,10 +171,32 @@ Nimsoft.INimRequest = {
 }
 
 /*
+    ArgMapper
+*/
+class ArgMapper {
+
+    constructor(aMap) {
+        this._inner = "";
+        this.argMap = aMap;
+    }
+
+    try(arg,value) {
+        if(this.argMap.has(arg)) {
+            this._inner+=`${this.argMap.get(arg)} ${value} `;
+        }
+    }
+
+    toString() {
+        return this._inner;
+    }
+
+}
+
+/*
     NimAlarm 
 */
 const INimAlarmConstructor = {
-    severity: 1,
+    severity: 0,
     subsystem: 1.1
 }
 
@@ -173,12 +204,53 @@ class NimAlarm extends eventEmitter {
 
     constructor(opts) {
         super();
+        const argMap = new Map(); 
+        argMap.set('severity','-l');
+        argMap.set('subsystem','-s');
+        argMap.set('source','-S');
+        argMap.set('token','-a');
+        argMap.set('checkpoint','-c');
+        argMap.set('custom1','-1');
+        argMap.set('custom2','-2');
+        argMap.set('custom3','-3');
+        argMap.set('custom4','-4');
+        argMap.set('custom5','-5');
+        const strConstructor = new ArgMapper(argMap);
         Object.assign(this,INimAlarmConstructor,opts);
+        for(let k in this) {
+            strConstructor.try(k,this[k]);
+        }
+        this.strArgs = strConstructor.toString();
     }
 
     call() {
         return new Promise( (resolve,reject) => {
+            let cmd = `${this.naPath} ${this.strArgs}${this.message}`;
+            console.log(cmd);
+            /*this.cp = exec(cmd, {timeout: Nimsoft.encoding, maxBuffer: Nimsoft.maxBuffer, encoding: Nimsoft.encoding}, (error, stdout, stderr) => {
+                if(error) {
+                    this.error = error;
+                }
+                const FailArray = Nimsoft.failed.exec(stdout);
+                if(FailArray) {
+                    this.error = FailArray[0];
+                }
+                else {
+                    this.Map = PDS.parse(stdout);
+                }
+            });
 
+            this.cp.on('close', (rc,signal) => {
+                this.rc = rc;
+                this.signal = signal;
+                if(this.rc !== Nimsoft.nimOk) {
+                    reject(this);
+                }
+                else {
+                    resolve(true);
+                }
+            });*/
+            resolve('ok');
         });
     }
 
