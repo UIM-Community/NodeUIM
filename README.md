@@ -50,18 +50,3 @@ Nimsoft.INimRequest = {
     encoding: Nimsoft.encoding
 }
 ```
-
-## Benchmark
-
-- request to pu.exe ( between 350 - 500 ms ) 
-- Parsing time ( 10 ms for 1000 robots ).
-
-## Roadmap Release 1
-
-- Setup Nimsoft.noArg automatically when needed ( HARD )
-- Add better event handling on probeUtility
-
-## Roadmap Release 2 
-
-- Continue to code a checkconfig.
-- Develop nimAlarm class.
