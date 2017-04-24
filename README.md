@@ -32,6 +32,25 @@ nimSDK.pu({ callback: 'gethubs' }).then( Response => {
 });
 ```
 
+Interface objects of pu method : 
+
+```js
+Nimsoft.encoding = 'utf8';
+Nimsoft.timeOut = 5000;
+Nimsoft.maxBuffer = 1024 * 3000;
+Nimsoft.failed = /(failed:)\s+(.*)/;
+Nimsoft.noArg = '""';
+Nimsoft.nimOk = 0;
+Nimsoft.INimRequest = {
+    path: 'hub',
+    callback: '_status',
+    timeout: Nimsoft.timeOut,
+    debug: false,
+    maxBuffer: Nimsoft.maxBuffer,
+    encoding: Nimsoft.encoding
+}
+```
+
 ## Benchmark
 
 - request to pu.exe ( between 350 - 500 ms ) 
