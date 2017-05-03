@@ -60,3 +60,8 @@ interface IRequest {
     encoding: string
 }
 ```
+
+# Roadmap 
+
+- npm package
+- implement nimAlarm
