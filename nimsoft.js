@@ -12,8 +12,8 @@ class PDS {
     constructor(...args) {
         this.args = args;
         for(let i = 0,length = this.args.length;i < length;i++) {
-            if(this.args[i] === null) {
-                this.args[i] = Nimsoft.noArg;
+            if(this.args[i] == void 0) {
+                this.args[i] = Nimsoft.NOARG;
             }
         }
     }
