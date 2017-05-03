@@ -11,13 +11,14 @@ Find API Documentation [Here](https://github.com/fraxken/NodeUIM/wiki)
 
 ## Examples 
 
+> Async is an external package, if npm is install just run : npm install async
+
 ```js
 const SDK       = require('./nimsoft.js');
 const Nimsoft   = SDK.Nimsoft;
 const Logger    = SDK.Logger;
 const config    = require('./configuration.json');
 const async     = require('async');
-const fs        = require('fs');
 
 const logger = new Logger({
     file: 'checkconfig.log'
