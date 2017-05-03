@@ -74,49 +74,66 @@ class PDS {
 }
 PDS.regex = /([a-zA-Z0-9_-]+)\s+(PDS_PCH|PDS_I|PDS_PDS|PDS_PPDS)\s+[0-9]+\s?(.*)/gm;
 
-/*
-    PU Class
-*/
-class ProbeUtility extends eventEmitter {
-
-    constructor(opts) {
-        super();
-        Object.assign(this,opts);
+function _assignInterface(target,interface) {
+    if(target == void 0) {
+        target = {};
     }
+    const tInterface        = Object.assign({},interface);
+    Object.assign(tInterface,target);
+    return tInterface;
+}
 
-    call() {
+
+const IRequest = {
+    path: 'hub',
+    callback: '_status',
+    timeout: 5000,
+    debug: false,
+    maxBuffer: 1024 * 3000,
+    encoding: 'utf8'
+}
+
+function Request(cfg,options) {
+    options = _assignInterface(options,IRequest);
+
+    return function(suppOpts) {
+        const tOption = Object.assign({},options,suppOpts);
         return new Promise( (resolve,reject) => {
-            let cmd = `${this.puPath} -u ${this.login} -p ${this.password} ${this.path} ${this.callback}`;
-            if(this.args !== undefined) {
-                if(this.args instanceof Array) {
-                    cmd = `${cmd} ${this.args.join(" ")}`;
+            let cmd = `${cfg.path} -u ${cfg.login} -p ${cfg.password} ${tOption.path} ${tOption.callback}`;
+            if(tOption.args !== undefined) {
+                if(tOption.args instanceof Array) {
+                    cmd = `${cmd} ${tOption.args.join(" ")}`;
                 }
-                else if(this.args instanceof PDS) {
-                    cmd = this.args.toString();
+                else if(tOption.args instanceof PDS) {
+                    cmd = tOption.args.toString();
                 }
             }
 
-            this.cp = exec(cmd, {timeout: this.timeout, maxBuffer: this.maxBuffer, encoding: this.encoding}, (error, stdout, stderr) => {
+            let errorMsg;
+            let resMap;
+            const cp = exec(cmd, {timeout: tOption.timeout, maxBuffer: tOption.maxBuffer, encoding: tOption.encoding}, (error, stdout, stderr) => {
                 if(error) {
-                    this.error = error;
+                    errorMsg = error;
                 }
                 const FailArray = Nimsoft.failed.exec(stdout);
                 if(FailArray) {
-                    this.error = FailArray[0];
+                    errorMsg = FailArray[0];
                 }
                 else {
-                    this.Map = PDS.parse(stdout);
+                    resMap = PDS.parse(stdout);
                 }
             });
 
-            this.cp.on('close', (rc,signal) => {
-                this.rc = rc;
-                this.signal = signal;
-                if(this.rc !== Nimsoft.nimOk) {
-                    reject(this);
+            cp.on('close', (rc,signal) => {
+                if(rc !== Nimsoft.NIMOK) {
+                    reject({
+                        rc,
+                        signal,
+                        message: errorMsg
+                    });
                 }
                 else {
-                    resolve(true);
+                    resolve(resMap);
                 }
             });
         });
@@ -126,135 +143,11 @@ class ProbeUtility extends eventEmitter {
 /*
     Main Nimsoft Class 
 */
-class Nimsoft extends eventEmitter {
-
-    constructor(opts) {
-        super();
-        this.login      = opts.login;
-        this.password   = opts.password;
-        if(path.isAbsolute(opts.path) === false) {
-            throw new Error("Please provide an absolute path");
-        }
-        this.puPath = path.basename(opts.path) === 'pu.exe' ? opts.path : path.join( opts.path , 'pu.exe' );
-        this.naPath = path.basename(opts.path) === 'nimAlarm.exe' ? opts.path : path.join( opts.path , 'nimAlarm.exe' );
-    }
-
-    pu(opts) {
-        const PU = new ProbeUtility(Object.assign(this,Nimsoft.INimRequest,opts));
-        return new Promise( (resolve,reject) => {
-            PU.call().then( _ => resolve(PU) ).catch( err => reject(err) );
-        });
-    }
-
-    alarm(opts) {
-        const alarm = new NimAlarm(Object.assign(this,opts));
-        return new Promise( (resolve,reject) => {
-            alarm.call().then( _ => resolve(alarm) ).catch( err => reject(err) );
-        });
-    }
-
-}
-// Static variables
-Nimsoft.encoding = 'utf8';
-Nimsoft.timeOut = 5000;
-Nimsoft.maxBuffer = 1024 * 3000;
-Nimsoft.failed = /(failed:)\s+(.*)/;
-Nimsoft.noArg = '""';
-Nimsoft.nimOk = 0;
-Nimsoft.INimRequest = {
-    path: 'hub',
-    callback: '_status',
-    timeout: Nimsoft.timeOut,
-    debug: false,
-    maxBuffer: Nimsoft.maxBuffer,
-    encoding: Nimsoft.encoding
-}
-
-/*
-    ArgMapper
-*/
-class ArgMapper {
-
-    constructor(aMap) {
-        this._inner = "";
-        this.argMap = aMap;
-    }
-
-    try(arg,value) {
-        if(this.argMap.has(arg)) {
-            this._inner+=`${this.argMap.get(arg)} ${value} `;
-        }
-    }
-
-    toString() {
-        return this._inner;
-    }
-
-}
-
-/*
-    NimAlarm 
-*/
-const INimAlarmConstructor = {
-    severity: 0,
-    subsystem: 1.1
-}
-
-class NimAlarm extends eventEmitter {
-
-    constructor(opts) {
-        super();
-        const argMap = new Map(); 
-        argMap.set('severity','-l');
-        argMap.set('subsystem','-s');
-        argMap.set('source','-S');
-        argMap.set('token','-a');
-        argMap.set('checkpoint','-c');
-        argMap.set('custom1','-1');
-        argMap.set('custom2','-2');
-        argMap.set('custom3','-3');
-        argMap.set('custom4','-4');
-        argMap.set('custom5','-5');
-        const strConstructor = new ArgMapper(argMap);
-        Object.assign(this,INimAlarmConstructor,opts);
-        for(let k in this) {
-            strConstructor.try(k,this[k]);
-        }
-        this.strArgs = strConstructor.toString();
-    }
-
-    call() {
-        return new Promise( (resolve,reject) => {
-            let cmd = `${this.naPath} ${this.strArgs}${this.message}`;
-            console.log(cmd);
-            /*this.cp = exec(cmd, {timeout: Nimsoft.encoding, maxBuffer: Nimsoft.maxBuffer, encoding: Nimsoft.encoding}, (error, stdout, stderr) => {
-                if(error) {
-                    this.error = error;
-                }
-                const FailArray = Nimsoft.failed.exec(stdout);
-                if(FailArray) {
-                    this.error = FailArray[0];
-                }
-                else {
-                    this.Map = PDS.parse(stdout);
-                }
-            });
-
-            this.cp.on('close', (rc,signal) => {
-                this.rc = rc;
-                this.signal = signal;
-                if(this.rc !== Nimsoft.nimOk) {
-                    reject(this);
-                }
-                else {
-                    resolve(true);
-                }
-            });*/
-            resolve('ok');
-        });
-    }
-
-}
+const Nimsoft = {
+    NOARG: '""',
+    NIMOK: 0,
+    failed: /(failed:)\s+(.*)/
+};
 
 /*
     LOGGER Class 
@@ -284,7 +177,35 @@ class Logger extends eventEmitter {
         this.streamOpen = true;
     }
 
-    log(msg,level) {
+    critical(msg) {
+        this.log(0,msg);
+    }
+
+    error(msg) {
+        this.log(1,msg);
+    }
+
+    warning(msg) {
+        this.log(2,msg);
+    }
+
+    info(msg) {
+        this.log(3,msg);
+    }
+
+    debug(msg) {
+        this.log(4,msg);
+    }
+
+    nohead(msg) {
+        this.log(5,msg);
+    }
+
+    dump(_o) {
+        this.nohead(JSON.stringify(_o));
+    }
+
+    log(level,msg) {
         if(msg !== undefined) {
             level = level || 3; 
             if(level <= this.level) {
@@ -316,6 +237,6 @@ Logger.Empty = 5;
 module.exports = {
     Nimsoft,
     PDS,
-    Logger,
-    NimAlarm
+    Request,
+    Logger
 }
