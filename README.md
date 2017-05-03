@@ -15,38 +15,48 @@ Find API Documentation [Here](https://github.com/fraxken/NodeUIM/wiki)
 const SDK       = require('./nimsoft.js');
 const Nimsoft   = SDK.Nimsoft;
 const Logger    = SDK.Logger;
+const config    = require('./configuration.json');
+const async     = require('async');
+const fs        = require('fs');
 
 const logger = new Logger({
-    file: 'example.log',
-    level: 3
+    file: 'checkconfig.log'
 });
 
-const nimSDK = new Nimsoft(config);
-nimSDK.pu({ callback: 'gethubs' }).then( Response => {
-    logger.log(`Response code => ${Response.rc}`,Logger.Info);
-    logger.log(JSON.Stringify(Response.Map,null,2));
+process.on('exit', () => {
+    logger.nohead(console.timeEnd('time'));
+    logger.close();
+});
+
+logger.nohead(console.time('time'));
+logger.info('Get hubs!');
+logger.nohead('---------------------------------');
+
+const getHubs = SDK.Request(config);
+getHubs({ callback: 'gethubs' }).then( PDS => {
+    async.each(PDS.get('hublist'),(hub, next) => {
+        logger.info(hub.name);
+        next();
+    }, err => {
+        logger.info('All hubs done!');
+        process.exit(0);
+    });
 })
-.catch( ProbeUtility => {
-    logger.log(ProbeUtility.error,Logger.Error);
-    closeHandler();
+.catch( error => {
+    logger.error(error.message);
+    process.exit(1);
 });
 ```
 
-Interface objects of pu method : 
+Interface for request method : 
 
 ```js
-Nimsoft.encoding = 'utf8';
-Nimsoft.timeOut = 5000;
-Nimsoft.maxBuffer = 1024 * 3000;
-Nimsoft.failed = /(failed:)\s+(.*)/;
-Nimsoft.noArg = '""';
-Nimsoft.nimOk = 0;
-Nimsoft.INimRequest = {
-    path: 'hub',
-    callback: '_status',
-    timeout: Nimsoft.timeOut,
-    debug: false,
-    maxBuffer: Nimsoft.maxBuffer,
-    encoding: Nimsoft.encoding
+interface IRequest {
+    path: string,
+    callback: string,
+    timeout: number,
+    debug: boolean,
+    maxBuffer: number,
+    encoding: string
 }
 ```
