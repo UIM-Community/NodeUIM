@@ -1,5 +1,14 @@
 {
     "name": "nodeuim",
     "description": "CA UIM - Pu interface writed in NodeJS",
-    "version": "1.1.0"
+    "version": "1.1.0",
+    "main": "index.js",
+    "keywords": [
+        "CA UIM",
+        "NodeJS",
+        "pu",
+        "interface"
+    ],
+    "author": "fraxken <gentilhomme.thomas@gmail.com>",
+    "licence": "WTFPL"
 }
