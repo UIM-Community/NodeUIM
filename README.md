@@ -9,6 +9,12 @@ Find API Documentation [Here](https://github.com/fraxken/NodeUIM/wiki)
 
 > Install on the system **or take the binary version to execute without installing NodeJS on the system**. 
 
+## Installation 
+
+```
+npm install nodeuim [--save]
+```
+
 ## Examples 
 
 > Async is an external package, if npm is install just run : npm install async
@@ -65,5 +71,4 @@ interface IRequest {
 
 # Roadmap 
 
-- npm package
 - implement nimAlarm
