@@ -1,8 +1,12 @@
 const exec          = require('child_process').exec;
 const eventEmitter  = require('events'); 
 const fs            = require('fs');
-const path          = require('path');
-const http          = require('http');
+
+/*
+ * Constants variables
+ */
+const NIMOK = 0;
+const NOARG = '""';
 
 /*
     PDS Wrapper 
@@ -10,12 +14,9 @@ const http          = require('http');
 class PDS {
 
     constructor(...args) {
-        this.args = args;
-        for(let i = 0,length = this.args.length;i < length;i++) {
-            if(this.args[i] == void 0) {
-                this.args[i] = Nimsoft.NOARG;
-            }
-        }
+        this.args = args || [];
+        for(let i = 0,length = this.args.length;i < length;i++) 
+            if(this.args[i] == void 0) this.args[i] = '""';
     }
 
     toString() {
@@ -23,9 +24,7 @@ class PDS {
     }
 
     static parse(str) {
-        let results;
-        let PPDS_Name;
-        let CurrentPDS;
+        let results, PPDS_Name, CurrentPDS;
         let parseMap = new Map();
 
         while( ( results = PDS.regex.exec(str) ) !== null) {
@@ -74,16 +73,21 @@ class PDS {
 }
 PDS.regex = /([a-zA-Z0-9_-]+)\s+(PDS_PCH|PDS_I|PDS_PDS|PDS_PPDS)\s+[0-9]+\s?(.*)/gm;
 
-function _assignInterface(target,interface) {
+/*
+ * AssignInterface function!
+ */
+function AssignInterface(target,interface) {
     if(target == void 0) {
         target = {};
     }
-    const tInterface        = Object.assign({},interface);
+    const tInterface = Object.assign({},interface);
     Object.assign(tInterface,target);
     return tInterface;
 }
 
-
+/*
+ * Request API!
+ */
 const IRequest = {
     path: 'hub',
     callback: '_status',
@@ -94,7 +98,7 @@ const IRequest = {
 }
 
 function Request(cfg,options) {
-    options = _assignInterface(options,IRequest);
+    options = AssignInterface(options,IRequest);
 
     return function(suppOpts) {
         const tOption = Object.assign({},options,suppOpts);
@@ -102,10 +106,13 @@ function Request(cfg,options) {
             let cmd = `${cfg.path} -u ${cfg.login} -p ${cfg.password} ${tOption.path} ${tOption.callback}`;
             if(tOption.args !== undefined) {
                 if(tOption.args instanceof Array) {
-                    cmd = `${cmd} ${tOption.args.join(" ")}`;
+                    cmd =  `${cmd} ${tOption.args.join(" ")}`;
                 }
                 else if(tOption.args instanceof PDS) {
-                    cmd = tOption.args.toString();
+                    cmd = `${cmd} ${tOption.args.toString()}`;
+                }
+                else {
+                    throw new TypeError("Bad arguments type! Have to be PDS or Array.");
                 }
             }
 
@@ -115,7 +122,7 @@ function Request(cfg,options) {
                 if(error) {
                     errorMsg = error;
                 }
-                const FailArray = Nimsoft.failed.exec(stdout);
+                const FailArray = /(failed:)\s+(.*)/.exec(stdout);
                 if(FailArray) {
                     errorMsg = FailArray[0];
                 }
@@ -125,12 +132,8 @@ function Request(cfg,options) {
             });
 
             cp.on('close', (rc,signal) => {
-                if(rc !== Nimsoft.NIMOK) {
-                    reject({
-                        rc,
-                        signal,
-                        message: errorMsg
-                    });
+                if(rc !== NIMOK) {
+                    reject(new Error(errorMsg));
                 }
                 else {
                     resolve(resMap);
@@ -139,15 +142,6 @@ function Request(cfg,options) {
         });
     }
 }
-
-/*
-    Main Nimsoft Class 
-*/
-const Nimsoft = {
-    NOARG: '""',
-    NIMOK: 0,
-    failed: /(failed:)\s+(.*)/
-};
 
 /*
     LOGGER Class 
@@ -235,8 +229,11 @@ Logger.Empty = 5;
     Exports all modules ! 
 */
 module.exports = {
-    Nimsoft,
+    NIMOK,
+    NOARG,
     PDS,
     Request,
-    Logger
+    Logger,
+    AssignInterface,
+    IRequest
 }
