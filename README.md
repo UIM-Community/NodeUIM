@@ -19,3 +19,6 @@ Find API & Documentations on the wiki page - [Here](https://github.com/fraxken/N
 # Roadmap 2.0
 
 - implement nimAlarm
+- implement argMap class
+- add PDS_VOID type to stdout parsing 
+- add non-regex elements key(s)/value(s) from stdout parsing.
