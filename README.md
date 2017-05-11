@@ -22,3 +22,4 @@ Find API & Documentations on the wiki page - [Here](https://github.com/fraxken/N
 - implement argMap class
 - add PDS_VOID type to stdout parsing 
 - add non-regex elements key(s)/value(s) from stdout parsing.
+- add "toObject" method and rename PDS.parse to "toMap"
