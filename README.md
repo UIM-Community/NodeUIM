@@ -2,6 +2,24 @@
 
 CA UIM NodeJS interface to work with pu.exe in a full async way.
 
+```js
+const nodeuim = require('nodeuim');
+
+setImmediate( async function() {
+
+    const getHubs = nodeuim.Request({
+        callback: 'gethubs',
+        timeout: 1500, 
+    });
+
+    const PDS = await getHubs();
+    PDS.get('hubslist').forEach( ({name: hubName}) => {
+        console.log(`Hubname => ${hubName}`);
+    }); 
+
+});
+```
+
 ## Requirement 
 
 - NodeJS 7.7.0 or higher
