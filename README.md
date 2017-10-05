@@ -2,6 +2,8 @@
 
 CA UIM NodeJS interface to work with pu.exe in a full async way.
 
+> **Warning :** This module spawn new node processes, so it will break if you try to parralelize to much things!
+
 ```js
 const nodeuim = require('nodeuim');
 
