@@ -6,32 +6,24 @@ CA UIM NodeJS interface to work with pu.exe in a full async way.
 
 ```js
 const nodeuim = require('nodeuim');
-
-const config = {
-	path: "E:/Nimsoft/bin/pu.exe",
+const request = nodeuim.Request({
+    path: "E:/Nimsoft/bin/pu.exe",
     login: "administrator",
     password: "NimSoft!01"
-}
-const uimRequest = nodeuim.Request(config);
-
-setImmediate( async function() {
-	
-	try {
-		const PDS = await uimRequest({
-			callback: 'getrobots',
-			timeout: 1500, 
-			args: new nodeuim.PDS(void 0,void 0)
-		});
-		
-		PDS.get('robotlist').forEach( ({name: robotName}) => {
-			console.log(`robotName => ${robotName}`);
-		}); 
-	}
-	catch(Err) {
-		console.log(Err);
-	}
-
 });
+
+async function main() {
+    const PDS = await request({
+        callback: 'getrobots',
+        timeout: 1500,
+        args: new nodeuim.PDS(void 0, void 0)
+    });
+
+    for(const robot of PDS.get('robotlist')) {
+        console.log(`robotName => ${robot.name}`);
+    }
+}
+main().catch(console.error);
 ```
 
 ## Requirement 
