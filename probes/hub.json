@@ -1,0 +1,24 @@
+{
+    "_restart": {},
+    "_status": {
+        "detail": "number"
+    },
+    "_stop": {},
+    "_suspend": {
+        "seconds": "number"
+    },
+    "getrobots": {
+        "name": "number",
+        "detail": "boolean"
+    },
+    "addrobot": {
+        "name": "string",
+        "ip": "string",
+        "port": "number",
+        "is_passive": "boolean",
+        "do_verify": "boolean"
+    },
+    "alive": {},
+    "assign_to_list": {},
+    "change_password": {}
+}

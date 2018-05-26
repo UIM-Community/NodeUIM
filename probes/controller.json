@@ -1,0 +1,6 @@
+{
+    "get_info": {
+        "interfaces": "number",
+        "robot": "string"
+    }
+}
